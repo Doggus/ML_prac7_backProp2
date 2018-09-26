@@ -11,10 +11,6 @@ struct IOdata
     float input2;
     float input3;
 
-    float weight1;
-    float weight2;
-    float weight3;
-
     float output;
 
     IOdata(float i1, float i2, float i3, float o)
@@ -22,15 +18,47 @@ struct IOdata
         input1 = i1;
         input2 = i2;
         input3 = i3;
-
-        //intialised to random float betwen -1 and 1 
-        //(initial weight doesn't matter - it will change as program finds its true weight)
-        weight1 = getRandomFloat(-1,1);
-        weight2 = getRandomFloat(-1,1);
-        weight3 = getRandomFloat(-1,1);
-
+  
         output = o;
     }
+};
+
+struct neuron
+{
+	float nodeValue;
+	vector<float> weights;
+	
+	neuron(const float &nv, const vector<float> &w)
+	{
+		nodeValue = nv;
+		weights = w;
+	}
+
+	void sigmoid()
+	{
+		nodeValue = 1/(1 + exp(-nodeValue));
+	}
+
+	void calculateLayerValue(const vector<float> &inputs, const vector<float> &weights)
+	{
+		nodeValue = 0;
+		if (inputs.size() == weights.size())
+		{
+			for (int i = 0; i < inputs.size(); ++i)
+			{
+				nodeValue += inputs[i] * weights[i];
+			}
+
+			sigmoid();
+
+		}
+		else
+		{
+			cout << "Neuron value cannot be calculated" << endl;
+			return;
+		}
+		
+	}
 };
 
 float getRandomFloat(float a, float b) 
@@ -41,89 +69,13 @@ float getRandomFloat(float a, float b)
     return a + r;
 }
 
-bool learningAlgorithm(IOdata data, vector<float> weights, int correctValueCount, const string type)
-{
-
-   float weightedSum = 0;
-   //3 parity XOR, 8 rows in the table (check question on vula)
-   for (int i = 0; i < 8; ++i)
-   {
-       weightedSum += (data.input1 * weights[0]) + (data.input2 * weights[1]) + (data.input3 * weights[2]);
-   }
-
-   //Apply the weighted sum to the correct Activation Function.
-   //Using the sigmoid activation function 
-   float thresholdValue = sigmoid(weightedSum);
-
-   // if errorValue = 0 threshold value is equal to true output
-   float errorValue = data.output - thresholdValue;
-   bool isEqual;
-
-   if (errorValue == 0)
-   {
-        isEqual = true;
-   }
-   else
-   {
-   		isEqual = false;
-   }
-
-   cout << data.input1 << type << data.input2 << " = " << thresholdValue << " true output is: " << data.output << endl;
-
-   //arbitrary value between 0 and 1
-   float learningRate = 0.5f;
-
-   if (!isEqual)
-   {
-       cout << "Therefore: change weights, errorValue = " << errorValue << endl;
-
-       weights.first += learningRate * errorValue * data.input1;
-       weights.second += learningRate * errorValue * data.input2;
-
-       correctValueCount = 0;
-
-       return false;
-   }
-
-   ++correctValueCount;
-   //return true if 4 in a row are correct
-   return correctValueCount == 4;
-
-}
-
-float sigmoid(float nodeValue)
-{
-	nodeValue = 1/(1 + exp(-nodeValue));
-	return nodeValue;
-}
-
-float calculateLayerValue(const vector<float> &inputs, const vector<float> &weights)
-{
-	int nodeValue = 0;
-
-	if (inputs.size() == weights.size())
-	{
-		for (int i = 0; i < inputs.size(); ++i)
-		{
-			inputValue += inputs[i] * weights[i];
-		}
-
-		nodeValue = sigmoid(nodeValue);
-		return nodeValue;
-	}
-	else
-	{
-		cout << "Node value cannot be calculated" << endl;
-		return;
-	}
-	
-}
-
 int main()
 {
 
-   cout << "sup" << endl;
+   cout << "TEST" << endl;
+   cout << "" << endl;
 
+   //Vector making up the 3 parity XOR table
    vector<IOdata> XORdata;
    XORdata.push_back(IOdata(0,0,0,0));
    XORdata.push_back(IOdata(0,0,1,1));
@@ -134,13 +86,134 @@ int main()
    XORdata.push_back(IOdata(1,1,0,0));
    XORdata.push_back(IOdata(1,1,1,1));
    
-   //intialised to random float betwen -1 and 1
-   vector<float> weights;
-   for (int i = 0; i < 4; ++i)
-   {
-       weights[i] = getRandomFloat(-1,1);
-       weights.second = getRandomFloat(-1,1);
-   }
+   //Each XOR entry makes up one neurol network with the 3 input float making up the inputLayer and the desired output for those inputs
+   //GOAL: to find the correct weights of the connections between the input, hidden and output layers 
+   //METHOD: create a neural network for each entry in the 3 parity XOR table
+   //Each input node will have 3 weights, each corresponding to 3 different hidden layer nodes
+   //Weights are intialised to random float betwen -1 and 1 (they are not known in the beginning)
+   //(initial weight doesn't matter - it will change as program finds the true weight given the desired output)
+
+   //FORWARD PASS:
+
+   vector<neuron> inputLayer = 
+	{
+		neuron(XORdata[0].input1, vector<float> {getRandomFloat(-1,1), getRandomFloat(-1,1), getRandomFloat(-1,1)}),
+		neuron(XORdata[0].input1, vector<float> {getRandomFloat(-1,1), getRandomFloat(-1,1), getRandomFloat(-1,1)}),
+		neuron(XORdata[0].input1, vector<float> {getRandomFloat(-1,1), getRandomFloat(-1,1), getRandomFloat(-1,1)})
+		//Bias neuron neccesary??
+	};
+
+	//vectors of all input neuron float values and the their weights that point to each hidden neuron
+	vector<float> inputValues {inputLayer[0].nodeValue, inputLayer[1].nodeValue, inputLayer[2].nodeValue};
+	//weights pointing to hidden node 1
+	vector<float> weights1 {inputLayer[0].weights[0], inputLayer[1].weights[0], inputLayer[2].weights[0]};
+	//weights pointing to hidden node 2
+	vector<float> weights2 {inputLayer[0].weights[1], inputLayer[1].weights[1], inputLayer[2].weights[1]};
+	//weights pointing to hidden node 3
+	vector<float> weights3 {inputLayer[0].weights[2], inputLayer[1].weights[2], inputLayer[2].weights[2]};
+
+	//default node value to 0 before we calculate its value (initial value is arbitrary), weight once again initialised to random float
+	//Neural network converges to one output from the hidden layer, thus hidden nodes will have one weight pointing to the out put node
+	neuron hiddenNeuron1 = neuron(0.0f, vector<float> {getRandomFloat(-1,1)});
+	//calculate float values for hidden node 1
+	hiddenNeuron1.calculateLayerValue(inputValues, weights1);
+
+	neuron hiddenNeuron2 = neuron(0.0f, vector<float> {getRandomFloat(-1,1)});
+	//calculate float values for hidden node 2
+	hiddenNeuron2.calculateLayerValue(inputValues, weights2);
+
+	neuron hiddenNeuron3 = neuron(0.0f, vector<float> {getRandomFloat(-1,1)});
+	//calculate float values for hidden node 3
+	hiddenNeuron3.calculateLayerValue(inputValues, weights3);
+
+	cout << "Forward pass: HiddenNeuron1: " << hiddenNeuron1.nodeValue << endl;
+	cout << "Forward pass: HiddenNeuron2: " << hiddenNeuron2.nodeValue << endl;
+	cout << "Forward pass: HiddenNeuron3: " << hiddenNeuron3.nodeValue << endl;
+	cout << "" << endl;
+
+	//instantiate output empty neuron 
+	neuron outputNeuron = neuron(0, vector<float> {});
+
+	//vectors of all hidden neuron float values and the their weights that point to the output neuron
+	vector<float> hiddenValues {hiddenNeuron1.nodeValue, hiddenNeuron2.nodeValue, hiddenNeuron3.nodeValue};
+	//weights that point to the output node 
+	vector<float> hiddenWeights {hiddenNeuron1.weights[0], hiddenNeuron2.weights[0], hiddenNeuron3.weights[0]};
+
+	//calculate float values for output node
+	outputNeuron.calculateLayerValue(hiddenValues, hiddenWeights);
+
+	cout << "Forward pass: outputNeuron: " << outputNeuron.nodeValue << endl;
+	cout << "" << endl;
+
+	float targetOutput = XORdata[0].output;
+	//learning rate is a value to help determine how much weights will be adjusted as program learns (it is manually adjusted my me) [between 0 and 1]
+	//I THINK as the value is smaller it results in more accurate but slower changes, and as it gets larger it results in less accurate but faster changes 
+	float learningRate = 0.1;
+
+	//BACK PROPOGATION:
+
+	//calculate output error values for back propagation
+	float outputError = outputNeuron.nodeValue*(1-outputNeuron.nodeValue)*(targetOutput-outputNeuron.nodeValue);
+
+	cout << "outputError: " << outputError << endl;
+
+	//Work out new weights in layer 2 (between hidden and output node):
+
+	hiddenWeights[0] += learningRate*outputError*hiddenNeuron1.nodeValue;
+	hiddenWeights[1] += learningRate*outputError*hiddenNeuron2.nodeValue;
+	hiddenWeights[2] += learningRate*outputError*hiddenNeuron3.nodeValue;
+
+	cout << "New layer 2 weights (learning rate(n) = 0.1): " << endl;
+	cout << "H1: W: " << hiddenWeights[0] << endl;
+	cout << "H2: W: " << hiddenWeights[1] << endl;
+	cout << "H3: W: " << hiddenWeights[2] << endl;
+	cout << "" << endl;
+
+	//calculate hidden error values for back propagation
+	float hiddenError1 = hiddenNeuron1.nodeValue*(1-hiddenNeuron1.nodeValue)*( (hiddenWeights[0]*outputError) );
+	float hiddenError2 = hiddenNeuron2.nodeValue*(1-hiddenNeuron2.nodeValue)*( (hiddenWeights[1]*outputError) );
+	float hiddenError3 = hiddenNeuron3.nodeValue*(1-hiddenNeuron3.nodeValue)*( (hiddenWeights[2]*outputError) );
+
+	cout << "hiddenError1: " << hiddenError1 << endl;
+	cout << "hiddenError2: " << hiddenError2 << endl;
+	cout << "hiddenError3: " << hiddenError3 << endl;
+	cout << "" << endl;
+
+	//Now that we have the hidden node error values we work out the new weights in the first layer (between input and hidden nodes):
+
+	//weights pointing to first hidden Node (top of the layer) [Each weight belongs to a different input layer node]
+	weights1[0] += learningRate*hiddenError1*inputValues[0];
+	weights1[1] += learningRate*hiddenError1*inputValues[1];
+	weights1[2] += learningRate*hiddenError1*inputValues[2];
+
+	//weights pointing to second hidden node
+	weights2[0] += learningRate*hiddenError2*inputValues[0];
+	weights2[1] += learningRate*hiddenError2*inputValues[1];
+	weights2[2] += learningRate*hiddenError2*inputValues[2];
+
+	//weights pointing to third hidden node
+	weights3[0] += learningRate*hiddenError3*inputValues[0];
+	weights3[1] += learningRate*hiddenError3*inputValues[1];
+	weights3[2] += learningRate*hiddenError3*inputValues[2];
+
+	cout << "New layer 1 weights (learning rate(n) = 0.1): " << endl;
+	cout << "I1: W1: " << weights1[0] << endl;
+	cout << "I1: W2: " << weights2[0] << endl;
+	cout << "I1: W3: " << weights3[0] << endl;
+	cout << "" << endl;
+	cout << "I2: W1: " << weights1[1] << endl;
+	cout << "I2: W2: " << weights2[1] << endl;
+	cout << "I2: W3: " << weights3[1] << endl;
+	cout << "" << endl;
+	cout << "I3: W1: " << weights1[2] << endl;
+	cout << "I3: W2: " << weights2[2] << endl;
+	cout << "I3: W3: " << weights3[2] << endl;
+	cout << "" << endl;
+
+	//The mean-squared error should be 0 or very close to 0 to conclude that the network has learnt the XOR function correctly
+	float meanSquaredError = pow(outputNeuron.nodeValue - targetOutput, 2);
+
+	cout << "Mean Squared Error: " << meanSquaredError << endl;
 
 	return 0;
 }
